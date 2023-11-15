@@ -14,7 +14,13 @@ class AuthController extends Controller
         $this->middleware('auth:api', ['except' => ['create', 'login']]);
     }
 
-    public function create(Request $request)
+    /**
+     * Cria o usuário e faz a autênticação
+     *
+     * @param Request $request
+     * @return array
+     */
+    public function create(Request $request): array
     {
         $array = ['error' => ''];
 
@@ -59,6 +65,37 @@ class AuthController extends Controller
             $array['error'] = 'Dados incorretos';
             return $array;
         }
+
+        return $array;
+    }
+
+    /**
+     * Login do usuário
+     *
+     * @param Request $request
+     * @return array
+     */
+    public function login(Request $request): array
+    {
+        $array = ['error' => ''];
+
+        $email = $request->input('email');
+        $password = $request->input('password');
+
+        $token = auth()->attempt([
+            'email' => $email,
+            'password' => $password
+        ]);
+
+        if (!$token) {
+            $array['error'] = 'Usuário e/ou senha errados!';
+            return $array;
+        }
+
+        $info = auth()->user();
+        $array['avatar'] = url('media/avatars/' . $info['avatar']);
+        $array['data'] = $info;
+        $array['token'] = $token;
 
         return $array;
     }
