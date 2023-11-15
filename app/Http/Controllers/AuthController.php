@@ -99,4 +99,34 @@ class AuthController extends Controller
 
         return $array;
     }
+
+    /**
+     * Logout do usuário
+     *
+     * @return array
+     */
+    public function logout(): array
+    {
+        auth()->logout();
+        return['error' => ''];
+    }
+
+    /**
+     * Atualiza o token do usuário e retorna os dados
+     *
+     * @return array
+     */
+    public function refresh(): array
+    {
+        $array = ['error' => ''];
+
+        $token = auth()->refresh();
+
+        $info = auth()->user();
+        $array['avatar'] = url('media/avatars/' . $info['avatar']);
+        $array['data'] = $info;
+        $array['token'] = $token;
+
+        return $array;
+    }
 }
