@@ -11,7 +11,7 @@ class AuthController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['create', 'login']]);
+        $this->middleware('auth:api', ['except' => ['create', 'login', 'unauthorized']]);
     }
 
     /**
@@ -128,5 +128,12 @@ class AuthController extends Controller
         $array['token'] = $token;
 
         return $array;
+    }
+
+    public function unauthorized()
+    {
+        return response()->json([
+            'error' => 'Não autorizado'
+        ], 401);
     }
 }
