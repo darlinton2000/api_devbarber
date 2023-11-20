@@ -21,7 +21,7 @@ Route::get('/ping', function() {
 
 Route::get('/401', [AuthController::class, 'unauthorized'])->name('login');
 
-Route::get('/random', [BarberController::class, 'createRandom']);
+//Route::get('/random', [BarberController::class, 'createRandom']);
 
 // AuthController
 Route::post('/auth/login', [AuthController::class, 'login']);
