@@ -7,6 +7,7 @@ use App\Models\BarberAvailability;
 use App\Models\BarberPhotos;
 use App\Models\BarberServices;
 use App\Models\BarberTestimonial;
+use Illuminate\Support\Facades\Auth;
 
 class BarberController extends Controller
 {
