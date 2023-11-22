@@ -8,7 +8,7 @@ use App\Models\BarberPhotos;
 use App\Models\BarberServices;
 use App\Models\BarberTestimonial;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Request;
+use Illuminate\Http\Request;
 
 class BarberController extends Controller
 {
@@ -100,6 +100,28 @@ class BarberController extends Controller
 //    }
 
     /**
+     * Busca o $address na API do Google
+     *
+     * @param $address
+     * @return mixed
+     */
+    private function searchGeo($address)
+    {
+        $address = urlencode($address);
+        $key = env('MAPS_KEY', null);
+
+        $url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' . $address . '?key=' . $key;
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        return json_decode($response, true);
+    }
+
+    /**
      * Lista os barbeiros
      *
      * @param Request $request
@@ -109,7 +131,35 @@ class BarberController extends Controller
     {
         $array = ['error' => ''];
 
-        $barbers = Barber::all();
+        $lat = $request->input('lat');
+        $lng = $request->input('lng');
+        $city = $request->input('city');
+
+        if (!empty($city)) {
+            $res = $this->searchGeo($city);
+
+            if (count($res['results']) > 0) {
+                $lat = $res['results'][0]['geometry']['location']['lat'];
+                $lng = $res['results'][0]['geometry']['location']['lng'];
+            }
+        } elseif (!empty($lat) && !empty($lng)) {
+            $res = $this->searchGeo($lat . ',' . $lng);
+
+            if (count($res['results']) > 0) {
+                $city = $res['results'][0]['formatted_address'];
+            }
+        } else {
+            $lat = '-23.5630907';
+            $lng = '-46.6682795';
+            $city = 'São Paulo';
+        }
+
+        $barbers = Barber::select(Barber::raw('*, SQRT(
+            POW(69.1 * (latitude - ' . $lat . '), 2) +
+            POW(69.1 * (' . $lng . ' - longitude) * COS(latitude / 57.3), 2)) AS distance'))
+            ->havingRaw('distance < ?', [10])
+            ->orderBy('distance', 'ASC')
+            ->get();
 
         foreach ($barbers as $bkey => $bvalue) {
             $barbers[$bkey]['avatar'] = url('media/avatars/' . $barbers[$bkey]['avatar']);
