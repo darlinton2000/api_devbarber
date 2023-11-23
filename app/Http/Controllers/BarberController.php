@@ -7,6 +7,8 @@ use App\Models\BarberAvailability;
 use App\Models\BarberPhotos;
 use App\Models\BarberServices;
 use App\Models\BarberTestimonial;
+use App\Models\UserAppointment;
+use App\Models\UserFavorite;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
@@ -174,6 +176,111 @@ class BarberController extends Controller
 
         $array['data'] = $barbers;
         $array['loc'] = 'Sao Paulo';
+
+        return $array;
+    }
+
+    /**
+     * Retorna os dados do barbeiro de acordo com o id
+     *
+     * @param int $id
+     * @return array
+     */
+    public function one(int $id = 0): array
+    {
+        $array = ['error' => ''];
+
+        $barber = Barber::find($id);
+
+        if ($barber) {
+            $barber['avatar'] = url('media/avatars/' . $barber['avatar']);
+            $barber['favorited'] = false;
+            $barber['photos'] = [];
+            $barber['services'] = [];
+            $barber['testimonials'] = [];
+            $barber['available'] = [];
+
+            // Verificando favorito
+            $cFavorite = UserFavorite::where('id_user', $this->loggedUser->id)
+                ->where('id_barber', $barber->id)
+                ->count();
+            if ($cFavorite > 0) {
+                $barber['favorited'] = true;
+            }
+
+            // Fotos do barbeiro
+            $barber['photos'] = BarberPhotos::select(['id', 'url'])
+                ->where('id_barber', $barber->id)
+                ->get();
+            foreach ($barber['photos'] as $bpkey => $bpvalue) {
+                $barber['photos'][$bpkey]['url'] = url('media/uploads/' . $barber['photos'][$bpkey]['url']);
+            }
+
+            // Servicos do barbeiro
+            $barber['services'] = BarberServices::select(['id', 'name', 'price'])
+                ->where('id_barber', $barber->id)
+                ->get();
+
+            // Depoimentos do barbeiro
+            $barber['testimonials'] = BarberTestimonial::select(['id', 'name', 'rate', 'body'])
+                ->where('id_barber', $barber->id)
+                ->get();
+
+            // Disponibilidade do barbeiro
+            $availabity = [];
+
+            // Pegando a disponibilidade crua
+            $avails = BarberAvailability::where('id_barber', $barber->id)->get();
+            $availWeekdays = [];
+            foreach ($avails as $item) {
+                $availWeekdays[$item['weekday']] = explode(',', $item['hours']);
+            }
+
+            // Pegar os agendamentos dos próximoss 20 dias
+            $appointments = [];
+            $appQuery = UserAppointment::where('id_barber', $barber->id)
+                ->whereBetween('ap_datetime', [
+                    date('Y-m-d') . ' 00:00:00',
+                    date('Y-m-d', strtotime('+20 days')) . ' 23:59:59'
+                ])
+                ->get();
+            foreach ($appQuery as $appItem) {
+                $appointments[] = $appItem['ap_datetime'];
+            }
+
+            // Gerar disponibilidade real
+            for ($q=0;$q<20;$q++) {
+                $timeItem = strtotime('+'.$q.' days');
+                $weekday = date('w', $timeItem);
+
+                if (in_array($weekday, array_keys($availWeekdays))) {
+                    $hours = [];
+
+                    $dayItem = date('Y-m-d', $timeItem);
+
+                    foreach ($availWeekdays[$weekday] as $hourItem) {
+                        $dayFormated = $dayItem.' '.$hourItem.':00';
+                        if (!in_array($dayFormated, $appointments)) {
+                            $hours[] = $hourItem;
+                        }
+                    }
+
+                    if (count($hours) > 0) {
+                        $availabity[] = [
+                            'date' => $dayItem,
+                            'hours' => $hours
+                        ];
+                    }
+                }
+            }
+
+            $barber['available'] = $availabity;
+
+            $array['data'] = $barber;
+        } else {
+            $array['error'] = 'Barbeiro não existe';
+            return $array;
+        }
 
         return $array;
     }
