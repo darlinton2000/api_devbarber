@@ -84,7 +84,7 @@ class BarberController extends Controller
 //                $rAdd = rand(7, 10);
 //                $hours = [];
 //                for($r=0; $r<8; $r++) {
-//                    $time = $r = $rAdd;
+//                    $time = $r + $rAdd;
 //                    if ($time < 10) {
 //                        $time = '0' . $time;
 //                    }
