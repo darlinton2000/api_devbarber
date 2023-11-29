@@ -363,4 +363,33 @@ class BarberController extends Controller
 
         return $array;
     }
+
+    /**
+     * Busca no BD o barbeiro de acordo com a $q
+     *
+     * @param Request $request
+     * @return array
+     */
+    public function search(Request $request): array
+    {
+        $array = ['error' => '', 'list' => []];
+
+        $q = $request->input('q');
+
+        if ($q) {
+            $barbers = Barber::select()
+                ->where('name', 'LIKE', '%' . $q . '%')
+                ->get();
+
+            foreach ($barbers as $bkey => $barber) {
+                $barbers[$bkey]['avatar'] = url('media/avatars/' . $barbers[$bkey]['avatar']);
+            }
+
+            $array['list'] = $barbers;
+        } else {
+            $array['error'] = 'Digita algop para buscar';
+        }
+
+        return $array;
+    }
 }
