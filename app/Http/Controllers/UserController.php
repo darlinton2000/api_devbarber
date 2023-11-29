@@ -68,4 +68,28 @@ class UserController extends Controller
 
         return $array;
     }
+
+    /**
+     * Lista os barbeiros favoritos do usuário autênticado
+     *
+     * @return array
+     */
+    public function getFavorites(): array
+    {
+        $array = ['error' => '', 'list' => []];
+
+        $favs = UserFavorite::select()
+            ->where('id_user', $this->loggedUser->id)
+            ->get();
+
+        if ($favs) {
+            foreach ($favs as $fav) {
+                $barber = Barber::find($fav['id_barber']);
+                $barber['avatar'] = url('media/avatars/' . $barber['avatar']);
+                $array['list'][] = $barber;
+            }
+        }
+
+        return $array;
+    }
 }
